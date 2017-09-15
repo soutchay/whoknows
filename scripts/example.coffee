@@ -7,6 +7,10 @@
 #   Uncomment the ones you want to try and experiment with.
 #
 #   These are from the scripting documentation: https://github.com/github/hubot/blob/master/docs/scripting.md
+Clarifai = require('clarifai');
+app = new Clarifai.App({
+  apiKey: '--'
+});
 
 module.exports = (robot) ->
 
@@ -15,7 +19,6 @@ module.exports = (robot) ->
   robot.listen(
 # Matcher
     (message) ->
-      console.log(message)
       return unless message['message']['subtype'] == "file_share"
       message['message']['subtype'] == "file_share"
 # Callback
@@ -24,7 +27,15 @@ module.exports = (robot) ->
   )
 
   robot.hear /^(http|https):\/\/.*/i, (res) ->
-     res.send "Need to check if hotdog here"
+    res.send("Checking if hotdog...")
+    app.models.predict("hotdogs", "#{res.message.text}").then (response) ->
+      console.log response.outputs[0].data.concepts[0].value
+      if response.outputs[0].data.concepts[0].value > 0.8
+        res.send "Yes, it is a hotdog"
+      else
+        res.send "No, not a hotdog"
+    .catch(err) ->
+      res.send("This is not a hotdog!")
 
   robot.hear /hotdog/i, (res) ->
     res.send "I heard someone say hotdog"
