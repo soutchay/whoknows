@@ -12,6 +12,9 @@ app = new Clarifai.App({
   apiKey: '--'
 });
 
+global.urlParameter = null
+
+
 module.exports = (robot) ->
 
 #  robot.hear /badger/i, (res) ->
@@ -20,10 +23,20 @@ module.exports = (robot) ->
 # Matcher
     (message) ->
       return unless message['message']['subtype'] == "file_share"
-      message['message']['subtype'] == "file_share"
+      isImage = message['message']['subtype'] == "file_share"
+      console.log message['message']['file'].url_private
+      global.urlParameter = message['message']['file'].url_private
+      isImage
 # Callback
     (response) ->
-      response.reply "Checking if hotdog..."
+      app.models.predict("hotdogs", "#{global.urlParameter}").then (response) ->
+        console.log response.outputs[0].data.concepts[0].value
+        if response.outputs[0].data.concepts[0].value > 0.8
+          response.reply "Yes, it is a hotdog"
+        else
+          response.reply "No, not a hotdog"
+      .catch (err) ->
+        response.reply("This is not a hotdog!")
   )
 
   robot.hear /^(http|https):\/\/.*/i, (res) ->
@@ -34,7 +47,7 @@ module.exports = (robot) ->
         res.send "Yes, it is a hotdog"
       else
         res.send "No, not a hotdog"
-    .catch(err) ->
+    .catch (err) ->
       res.send("This is not a hotdog!")
 
   robot.hear /hotdog/i, (res) ->
